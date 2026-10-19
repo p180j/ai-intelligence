@@ -1,0 +1,1 @@
+Decide whether the article describes exactly the same real-world occurrence as one candidate event. Same product but another version, pricing change, funding, or separate announcement is not a match. Return strict JSON only: matched(boolean), eventId(number or null), confidence(0..1), reason. When uncertain return matched=false. Prompt version: v1.

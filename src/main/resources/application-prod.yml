@@ -1,0 +1,20 @@
+server:
+  forward-headers-strategy: framework
+  shutdown: graceful
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: false
+admin:
+  username: ${ADMIN_USERNAME:admin}
+  password: ${ADMIN_PASSWORD}
+  totp-secret: ${ADMIN_TOTP_SECRET}
+app:
+  public-base-url: ${PUBLIC_BASE_URL}
+logging:
+  file:
+    name: ${LOG_FILE:logs/ai-intelligence.log}
