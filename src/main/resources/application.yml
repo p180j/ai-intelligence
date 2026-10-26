@@ -14,6 +14,7 @@ server:
 admin:
   username: ${ADMIN_USERNAME:admin}
   password: ${ADMIN_PASSWORD:admin}
+  totp-enabled: ${ADMIN_TOTP_ENABLED:false}
   totp-secret: ${ADMIN_TOTP_SECRET:G5RJTTY7DLQBYU3CSTXKIVZU5QC25IRA}
 app:
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:18084}

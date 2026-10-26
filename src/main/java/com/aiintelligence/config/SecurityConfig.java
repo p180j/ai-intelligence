@@ -37,8 +37,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    TotpVerifier totpVerifier(@Value("${admin.totp-secret:}") String secret) {
-        return new TotpVerifier(secret, Clock.systemUTC());
+    TotpVerifier totpVerifier(@Value("${admin.totp-enabled:true}") boolean enabled,
+            @Value("${admin.totp-secret:}") String secret) {
+        return new TotpVerifier(enabled, secret, Clock.systemUTC());
     }
 
     @Bean
@@ -88,6 +89,9 @@ public class SecurityConfig {
         protected void additionalAuthenticationChecks(UserDetails userDetails,
                 UsernamePasswordAuthenticationToken authentication) {
             super.additionalAuthenticationChecks(userDetails, authentication);
+            if (!totpVerifier.enabled()) {
+                return;
+            }
             Object details = authentication.getDetails();
             if (!(details instanceof TotpAuthenticationDetails)
                     || !totpVerifier.verify(((TotpAuthenticationDetails) details).code)) {

@@ -57,6 +57,23 @@ class Phase45IntegrationTest {
                 .andExpect(jsonPath("$.events[*].event.id",hasItem(published.id.intValue())));
     }
 
+    @Test void regeneratingDraftAddsApprovedUnassignedEventsFromEarlierDates(){
+        LocalDate reportDate=LocalDate.now().plusDays(30);
+        DailyReport draft=reports.generate(reportDate);
+        int originalCount=draft.events.size();
+
+        EventRequest request=request("昨日发生、今日审核的事件",EventCategory.MUST_READ,9);
+        request.eventTime=reportDate.minusDays(1).atTime(18,0);
+        Event approved=events.create(request);
+        events.review(approved.id,ReviewStatus.APPROVED);
+
+        DailyReport refreshed=reports.generate(reportDate);
+        assertEquals(originalCount+1,refreshed.events.size());
+        assertTrue(refreshed.events.stream().anyMatch(item->approved.id.equals(item.eventId)));
+        assertEquals(originalCount+1,reports.generate(reportDate).events.size());
+        assertTrue(reports.generate(reportDate.plusDays(1)).events.stream().noneMatch(item->approved.id.equals(item.eventId)));
+    }
+
     private Event event(String title,EventCategory category,int score){return events.create(request(title,category,score));}
     private EventRequest request(String title,EventCategory category,int score){EventRequest r=new EventRequest();r.title=title;r.summary=title+"摘要";r.whatHappened="已确认发生";r.whyImportant="对开发者有价值";r.availability="AVAILABLE";r.developerImpact="可以立即评估";r.category=category;r.totalScore=score;r.impactScore=score;r.technicalScore=score;r.availabilityScore=score;r.developerValueScore=score;r.credibilityScore=score;r.freshnessScore=score;r.eventTime=LocalDateTime.now();return r;}
 }

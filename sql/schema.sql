@@ -244,3 +244,11 @@ CREATE TABLE ai_event_reader_article (
     CONSTRAINT uk_ai_reader_event UNIQUE (event_id),
     CONSTRAINT fk_ai_reader_event FOREIGN KEY (event_id) REFERENCES ai_event (id)
 );
+
+-- Default official AI sources verified on 2026-10-22.
+INSERT INTO ai_source (name, source_type, base_url, feed_url, priority, language, enabled, collector_type, collect_config, authority_level, is_official)
+VALUES ('Google AI Blog', 'RSS', 'https://blog.google/innovation-and-ai/technology/ai/', 'https://blog.google/innovation-and-ai/technology/ai/rss/', 95, 'en', TRUE, 'RSS', '{"maxItems": 5}', 10, TRUE);
+INSERT INTO ai_source (name, source_type, base_url, feed_url, priority, language, enabled, collector_type, collect_config, authority_level, is_official)
+VALUES ('AWS Machine Learning Blog', 'RSS', 'https://aws.amazon.com/blogs/machine-learning/', 'https://aws.amazon.com/blogs/machine-learning/feed/', 85, 'en', TRUE, 'RSS', '{"maxItems": 5}', 9, TRUE);
+INSERT INTO ai_source (name, source_type, base_url, feed_url, priority, language, enabled, collector_type, collect_config, authority_level, is_official)
+VALUES ('NVIDIA AI Blog', 'RSS', 'https://blogs.nvidia.com/', 'https://blogs.nvidia.com/feed/', 85, 'en', TRUE, 'RSS', '{"maxItems": 5}', 9, TRUE);

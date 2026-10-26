@@ -7,5 +7,6 @@ spring:
   flyway:
     enabled: true
 admin:
+  totp-enabled: false
   totp-secret: GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ
 

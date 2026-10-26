@@ -12,6 +12,7 @@ public class ProductController {
     @GetMapping("/{id}") public Product get(@PathVariable long id){return service.findById(id);}
     @PostMapping @ResponseStatus(HttpStatus.CREATED) public Product create(@Valid @RequestBody ProductRequest r){return service.create(r);}
     @PutMapping("/{id}") public Product update(@PathVariable long id,@Valid @RequestBody ProductRequest r){return service.update(id,r);}
+    @PostMapping("/reconcile") public int reconcile(){return service.reconcileKnownCandidates();}
     @PostMapping("/{productId}/events/{eventId}") public Product attach(@PathVariable long productId,@PathVariable long eventId,@RequestBody(required=false) ProductEventRequest r){return service.attachEvent(productId,eventId,r);}
 }
 

@@ -13,7 +13,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest
+@SpringBootTest(properties = "admin.totp-enabled=true")
 @AutoConfigureMockMvc
 class TotpAuthenticationTest {
     @Autowired MockMvc mvc;
@@ -21,6 +21,8 @@ class TotpAuthenticationTest {
 
     @Test
     void requiresPasswordAndCurrentTotpCode() throws Exception {
+        mvc.perform(get("/api/public/login-config")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.totpEnabled").value(true));
         mvc.perform(post("/login").param("username", "admin").param("password", "admin").param("totp", "12345"))
                 .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/login?error"));
 

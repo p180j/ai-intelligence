@@ -53,3 +53,14 @@ UPDATE ai_event SET title=REPLACE(title,'（已由管理员复核）',''),summar
 UPDATE ai_event SET publish_status='DRAFT',published_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE review_status<>'APPROVED' AND publish_status<>'DRAFT';
 UPDATE ai_event SET published_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE publish_status='DRAFT' AND published_at IS NOT NULL;
 UPDATE ai_event SET published_at=COALESCE(published_at,updated_at,created_at) WHERE review_status='APPROVED' AND publish_status='PUBLISHED' AND published_at IS NULL;
+
+-- Official AI sources. Safe to execute again because feed URLs are checked first.
+INSERT INTO ai_source (name, source_type, base_url, feed_url, priority, language, enabled, collector_type, collect_config, authority_level, is_official)
+SELECT 'Google AI Blog', 'RSS', 'https://blog.google/innovation-and-ai/technology/ai/', 'https://blog.google/innovation-and-ai/technology/ai/rss/', 95, 'en', TRUE, 'RSS', '{"maxItems": 5}', 10, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM ai_source WHERE feed_url='https://blog.google/innovation-and-ai/technology/ai/rss/');
+INSERT INTO ai_source (name, source_type, base_url, feed_url, priority, language, enabled, collector_type, collect_config, authority_level, is_official)
+SELECT 'AWS Machine Learning Blog', 'RSS', 'https://aws.amazon.com/blogs/machine-learning/', 'https://aws.amazon.com/blogs/machine-learning/feed/', 85, 'en', TRUE, 'RSS', '{"maxItems": 5}', 9, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM ai_source WHERE feed_url='https://aws.amazon.com/blogs/machine-learning/feed/');
+INSERT INTO ai_source (name, source_type, base_url, feed_url, priority, language, enabled, collector_type, collect_config, authority_level, is_official)
+SELECT 'NVIDIA AI Blog', 'RSS', 'https://blogs.nvidia.com/', 'https://blogs.nvidia.com/feed/', 85, 'en', TRUE, 'RSS', '{"maxItems": 5}', 9, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM ai_source WHERE feed_url='https://blogs.nvidia.com/feed/');

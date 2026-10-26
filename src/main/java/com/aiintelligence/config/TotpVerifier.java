@@ -16,16 +16,26 @@ final class TotpVerifier {
     private static final int CODE_DIGITS = 6;
     private static final int ALLOWED_TIME_DRIFT_STEPS = 1;
 
+    private final boolean enabled;
     private final byte[] secret;
     private final Clock clock;
     private final AtomicLong lastAcceptedStep = new AtomicLong(-1);
 
     TotpVerifier(String encodedSecret, Clock clock) {
-        this.secret = decodeSecret(encodedSecret);
+        this(true, encodedSecret, clock);
+    }
+
+    TotpVerifier(boolean enabled, String encodedSecret, Clock clock) {
+        this.enabled = enabled;
+        this.secret = enabled ? decodeSecret(encodedSecret) : new byte[0];
         this.clock = clock;
-        if (secret.length < 20) {
+        if (enabled && secret.length < 20) {
             throw new IllegalStateException("ADMIN_TOTP_SECRET must contain at least 160 bits of Base32 data");
         }
+    }
+
+    boolean enabled() {
+        return enabled;
     }
 
     boolean verify(String code) {

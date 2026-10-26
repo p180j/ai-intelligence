@@ -51,14 +51,26 @@ public class SourceRepository {
     }
 
     public int update(long id, SourceRequest request) {
-        return jdbcTemplate.update("UPDATE ai_source SET name=?, source_type=?, base_url=?, feed_url=?, priority=?, language=?, enabled=?, last_collect_time=?, collector_type=?, collect_config=?, authority_level=?, is_official=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        return jdbcTemplate.update("UPDATE ai_source SET name=?, source_type=?, base_url=?, feed_url=?, priority=?, language=?, enabled=?, collector_type=?, collect_config=?, authority_level=?, is_official=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
                 request.name, request.sourceType.name(), request.baseUrl, request.feedUrl, request.priority == null ? 0 : request.priority,
-                request.language, request.enabled == null || request.enabled, request.lastCollectTime, request.collectorType, request.collectConfig,
+                request.language, request.enabled == null || request.enabled, request.collectorType, request.collectConfig,
                 request.authorityLevel == null ? 5 : request.authorityLevel, Boolean.TRUE.equals(request.official), id);
     }
 
     public int disable(long id) {
         return jdbcTemplate.update("UPDATE ai_source SET enabled=FALSE, updated_at=CURRENT_TIMESTAMP WHERE id=?", id);
+    }
+
+    public int enable(long id) {
+        return jdbcTemplate.update("UPDATE ai_source SET enabled=TRUE,failure_count=0,last_error_message=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?", id);
+    }
+
+    public int delete(long id) {
+        return jdbcTemplate.update("DELETE FROM ai_source WHERE id=?", id);
+    }
+
+    public int countArticles(long id) {
+        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ai_article WHERE source_id=?", Integer.class, id);
     }
 
     public List<Source> findEnabled() {
@@ -71,6 +83,14 @@ public class SourceRepository {
 
     public void collectFailed(long id, String message) {
         jdbcTemplate.update("UPDATE ai_source SET last_collect_time=CURRENT_TIMESTAMP,last_error_message=?,failure_count=failure_count+1,last_collect_count=0,updated_at=CURRENT_TIMESTAMP WHERE id=?", message, id);
+    }
+
+    public void disableWhenFailureCountExceeds(long id, int threshold) {
+        jdbcTemplate.update("UPDATE ai_source SET enabled=FALSE,updated_at=CURRENT_TIMESTAMP WHERE id=? AND failure_count>?", id, threshold);
+    }
+
+    public void disableExceededFailures(int threshold) {
+        jdbcTemplate.update("UPDATE ai_source SET enabled=FALSE,updated_at=CURRENT_TIMESTAMP WHERE enabled=TRUE AND failure_count>?", threshold);
     }
 
     private RowMapper<Source> rowMapper() {

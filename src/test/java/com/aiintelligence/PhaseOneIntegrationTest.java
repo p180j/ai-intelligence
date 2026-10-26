@@ -1,6 +1,7 @@
 package com.aiintelligence;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -13,10 +14,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest @AutoConfigureMockMvc(addFilters=false) @DirtiesContext(classMode=DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class PhaseOneIntegrationTest {
-    @Autowired MockMvc mvc; @Autowired ObjectMapper mapper; @Autowired com.aiintelligence.event.EventService events;
+    @Autowired MockMvc mvc; @Autowired ObjectMapper mapper; @Autowired com.aiintelligence.event.EventService events; @Autowired com.aiintelligence.source.SourceService sources;
+    @Autowired com.aiintelligence.event.PipelineRepository pipeline; @Autowired JdbcTemplate jdbc;
 
     @Test void completeAcceptanceFlow() throws Exception {
         long source=id(postJson("/admin/sources","{\"name\":\"Anthropic\",\"sourceType\":\"MANUAL\",\"priority\":10}"));
@@ -41,6 +44,24 @@ class PhaseOneIntegrationTest {
         mvc.perform(get("/admin/sources/{id}",source)).andExpect(jsonPath("$.enabled").value(false));
     }
 
+    @Test void sourceClosesAfterSixConsecutiveFailuresAndCanBeEnabled() throws Exception {
+        long source=id(postJson("/admin/sources","{\"name\":\"Unstable RSS\",\"sourceType\":\"RSS\",\"feedUrl\":\"https://example.test/feed.xml\"}"));
+        for(int i=0;i<5;i++)sources.collectFailed(source,"timeout");
+        mvc.perform(get("/admin/sources/{id}",source)).andExpect(jsonPath("$.enabled").value(true)).andExpect(jsonPath("$.failureCount").value(5));
+        sources.collectFailed(source,"timeout");
+        mvc.perform(get("/admin/sources/{id}",source)).andExpect(jsonPath("$.enabled").value(false)).andExpect(jsonPath("$.failureCount").value(6));
+        mvc.perform(post("/admin/sources/{id}/enable",source)).andExpect(status().isOk()).andExpect(jsonPath("$.enabled").value(true)).andExpect(jsonPath("$.failureCount").value(0));
+    }
+
+    @Test void onlyUnusedSourceCanBeDeletedPermanently() throws Exception {
+        long unused=id(postJson("/admin/sources","{\"name\":\"Unused\",\"sourceType\":\"RSS\"}"));
+        mvc.perform(delete("/admin/sources/{id}/permanent",unused)).andExpect(status().isNoContent());
+        mvc.perform(get("/admin/sources/{id}",unused)).andExpect(status().isNotFound());
+        long used=id(postJson("/admin/sources","{\"name\":\"Used\",\"sourceType\":\"MANUAL\"}"));
+        postJson("/admin/articles","{\"sourceId\":"+used+",\"title\":\"历史文章\",\"url\":\"https://example.test/history\"}");
+        mvc.perform(delete("/admin/sources/{id}/permanent",used)).andExpect(status().isConflict()).andExpect(jsonPath("$.message").value("该信源已有历史文章，不能删除，请改为关闭"));
+    }
+
     @Test void duplicateArticleUrlAndProductSlugAreRejected() throws Exception {
         long source=id(postJson("/admin/sources","{\"name\":\"GitHub\",\"sourceType\":\"GITHUB\"}"));
         String article="{\"sourceId\":"+source+",\"title\":\"Release\",\"url\":\"https://example.test/release\"}";
@@ -62,6 +83,26 @@ class PhaseOneIntegrationTest {
         events.review(event,com.aiintelligence.event.ReviewStatus.APPROVED);
         events.publish(event);
         mvc.perform(get("/admin/events/{id}",event)).andExpect(status().isOk()).andExpect(jsonPath("$.reviewStatus").value("APPROVED")).andExpect(jsonPath("$.publishStatus").value("PUBLISHED"));
+    }
+
+    @Test void knownProductVariantsAreLinkedAutomaticallyWithoutCreatingCandidateTasks() throws Exception {
+        long product=id(postJson("/admin/products","{\"name\":\"Auto Link Code\",\"slug\":\"auto-link-code\",\"companyName\":\"Test Lab\"}"));
+        long versionEvent=id(postJson("/admin/events","{\"title\":\"Auto Link Code 2.0 发布\"}"));
+        long unrelatedEvent=id(postJson("/admin/events","{\"title\":\"未知模型发布\"}"));
+        assertTrue(pipeline.linkProductIfKnown(versionEvent,"Auto Link Code 2.0"));
+        assertTrue(!pipeline.linkProductIfKnown(unrelatedEvent,"Auto Link"));
+        mvc.perform(get("/admin/events/{id}",versionEvent)).andExpect(jsonPath("$.products[0].productId").value(product));
+        mvc.perform(get("/admin/events/{id}",unrelatedEvent)).andExpect(jsonPath("$.products",hasSize(0)));
+        org.junit.jupiter.api.Assertions.assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM ai_product_candidate WHERE event_id IN (?,?)",Integer.class,versionEvent,unrelatedEvent));
+    }
+
+    @Test void productLibraryReconcilesExistingCandidatesWithoutManualActions() throws Exception {
+        long event=id(postJson("/admin/events","{\"title\":\"GitHub Copilot IDE 更新\"}"));
+        long product=id(postJson("/admin/products","{\"name\":\"GitHub Copilot\",\"slug\":\"github-copilot\",\"companyName\":\"GitHub\"}"));
+        jdbc.update("INSERT INTO ai_product_candidate(event_id,name,entity_type) VALUES(?,?,?)",event,"GitHub Copilot for JetBrains","PRODUCT");
+        mvc.perform(post("/admin/products/reconcile")).andExpect(status().isOk()).andExpect(content().string("1"));
+        mvc.perform(get("/admin/events/{id}",event)).andExpect(jsonPath("$.products[0].productId").value(product));
+        org.junit.jupiter.api.Assertions.assertEquals("CONFIRMED",jdbc.queryForObject("SELECT status FROM ai_product_candidate WHERE event_id=?",String.class,event));
     }
 
     private String postJson(String url,String body)throws Exception{return mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();}

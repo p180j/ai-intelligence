@@ -12,7 +12,8 @@ spring:
 admin:
   username: ${ADMIN_USERNAME:admin}
   password: ${ADMIN_PASSWORD}
-  totp-secret: ${ADMIN_TOTP_SECRET}
+  totp-enabled: ${ADMIN_TOTP_ENABLED:true}
+  totp-secret: ${ADMIN_TOTP_SECRET:}
 app:
   public-base-url: ${PUBLIC_BASE_URL}
 logging:

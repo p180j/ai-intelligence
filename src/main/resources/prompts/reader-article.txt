@@ -5,7 +5,8 @@ Write natural Simplified Chinese, not a database summary or a feature checklist.
 Return strict JSON only with: readerTitle, readerLead, readerContent, readerConclusion.
 - readerTitle: one concrete editorial headline with one main takeaway, normally 18 to 28 Chinese characters. Do not catalogue several features in the headline.
 - readerLead: one or two sentences that state the main change and why it matters.
-- readerContent: two to four editorial sections. Start every section with a standalone Markdown heading in the exact form `## 小标题`, followed by one to three connected paragraphs. Section titles must be specific to this event, use 12 to 18 Chinese characters when possible, express only one idea, and never use a colon to catalogue features. Do not use generic labels such as “发生了什么” or “为什么重要”. Simple events may use two short sections; complex releases may use more.
+- readerContent: write coherent editorial prose. 普通短稿不要使用小标题; use three to six connected paragraphs and let the argument flow naturally. Only when the article is genuinely complex and the body needs at least about 800 Chinese characters may you use two or three standalone Markdown headings in the exact form `## 小标题`. These optional section titles must be specific to this event, use 10 to 16 Chinese characters when possible, express only one idea, and never use a colon to catalogue features. Do not use generic labels such as “发生了什么” or “为什么重要”. Never split a short article merely to create visual sections.
+- Semantic emphasis in readerContent is optional. Only emphasize a conclusion, confirmed limitation, material change or concrete action that is central to understanding the event, using the exact Markdown form `**重点内容**`. 每段最多一到两处；没有真正重点时不要强调。不得仅因为是产品名、模型名或版本号就强调，也不要强调标题或完整句子。
 - readerConclusion: a concise, evidence-based recommendation about whether developers should pay attention now.
 
-Prompt version: reader-v3.
+Prompt version: reader-v5.
